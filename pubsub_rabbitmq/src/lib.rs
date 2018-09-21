@@ -17,6 +17,7 @@
 
 extern crate amqp;
 
+extern crate amq_protocol;
 extern crate futures;
 extern crate lapin_futures as lapin;
 extern crate tokio;
@@ -24,4 +25,18 @@ extern crate tokio_io;
 #[macro_use]
 extern crate logger;
 
-mod lapin_amqp;
+pub mod lapin_amqp;
+pub mod rust_amqp;
+
+pub type Payload = (String, Vec<u8>);
+
+pub const EXCHANGE: &str = "cita";
+pub const EXCHANGE_TYPE: &str = "topic";
+
+pub const AMQP_URL: &'static str = "AMQP_URL";
+
+#[cfg(feature = "rust-amqp")]
+pub use rust_amqp::start_rabbitmq;
+
+#[cfg(not(feature = "rust-amqp"))]
+pub use lapin_amqp::start_rabbitmq;

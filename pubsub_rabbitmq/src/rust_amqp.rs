@@ -21,12 +21,14 @@ use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::thread;
 
+use super::{Payload, AMQP_URL, EXCHANGE, EXCHANGE_TYPE};
+
 pub struct Handler {
-    tx: Sender<(String, Vec<u8>)>,
+    tx: Sender<Payload>,
 }
 
 impl Handler {
-    pub fn new(tx: Sender<(String, Vec<u8>)>) -> Self {
+    pub fn new(tx: Sender<Payload>) -> Self {
         Handler { tx: tx }
     }
 }
@@ -44,20 +46,17 @@ impl Consumer for Handler {
     }
 }
 
-pub const AMQP_URL: &'static str = "AMQP_URL";
-
 pub fn init_channel(amqp_url: &str) -> Channel {
     let mut session = match Session::open_url(amqp_url) {
         Ok(session) => session,
         Err(error) => panic!("Failed to open url {} : {:?}", amqp_url, error),
     };
-
     let mut channel = session.open_channel(1).ok().expect("Can't open channel");
     let _ = channel.basic_prefetch(10);
     channel
         .exchange_declare(
-            "cita",
-            "topic",
+            EXCHANGE,
+            EXCHANGE_TYPE,
             false,
             true,
             false,
@@ -69,13 +68,10 @@ pub fn init_channel(amqp_url: &str) -> Channel {
     channel
 }
 
-pub fn start_rabbitmq(
-    name: &str,
-    keys: Vec<String>,
-    tx: Sender<(String, Vec<u8>)>,
-    rx: Receiver<(String, Vec<u8>)>,
-) {
-    let amqp_url = std::env::var(AMQP_URL).expect(format!("{} must be set", AMQP_URL).as_str());
+pub fn start_rabbitmq(name: &str, keys: Vec<String>, tx: Sender<Payload>, rx: Receiver<Payload>) {
+    debug!("Starting rabbitmq via rust-amqp ...");
+
+    let amqp_url = ::std::env::var(AMQP_URL).expect(format!("{} must be set", AMQP_URL).as_str());
     let mut channel = init_channel(&amqp_url);
 
     //queue: &str, passive: bool, durable: bool, exclusive: bool, auto_delete: bool, nowait: bool, arguments: Table
@@ -85,7 +81,7 @@ pub fn start_rabbitmq(
 
     for key in keys {
         channel
-            .queue_bind(name.clone(), "cita", &key, false, Table::new())
+            .queue_bind(name.clone(), EXCHANGE, &key, false, Table::new())
             .unwrap();
     }
     let callback = Handler::new(tx);
@@ -127,7 +123,7 @@ pub fn start_rabbitmq(
                 }
                 let (routing_key, msg) = ret.unwrap();
                 let ret = channel.basic_publish(
-                    "cita",
+                    EXCHANGE,
                     &routing_key,
                     false,
                     false,
