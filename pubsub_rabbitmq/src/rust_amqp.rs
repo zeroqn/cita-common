@@ -1,5 +1,5 @@
 // CITA
-// Copyright 2016-2017 Cryptape Technologies LLC.
+// Copyright 2016-2018 Cryptape Technologies LLC.
 
 // This program is free software: you can redistribute it
 // and/or modify it under the terms of the GNU General Public
@@ -46,16 +46,10 @@ impl Consumer for Handler {
 
 pub const AMQP_URL: &'static str = "AMQP_URL";
 
-pub fn start_rabbitmq(
-    name: &str,
-    keys: Vec<String>,
-    tx: Sender<(String, Vec<u8>)>,
-    rx: Receiver<(String, Vec<u8>)>,
-) {
-    let amqp_url = std::env::var(AMQP_URL).expect(format!("{} must be set", AMQP_URL).as_str());
-    let mut session = match Session::open_url(&amqp_url) {
+pub fn init_channel(amqp_url: &str) -> Channel {
+    let mut session = match Session::open_url(amqp_url) {
         Ok(session) => session,
-        Err(error) => panic!("failed to open url {} : {:?}", amqp_url, error),
+        Err(error) => panic!("Failed to open url {} : {:?}", amqp_url, error),
     };
 
     let mut channel = session.open_channel(1).ok().expect("Can't open channel");
@@ -72,6 +66,17 @@ pub fn start_rabbitmq(
             Table::new(),
         )
         .unwrap();
+    channel
+}
+
+pub fn start_rabbitmq(
+    name: &str,
+    keys: Vec<String>,
+    tx: Sender<(String, Vec<u8>)>,
+    rx: Receiver<(String, Vec<u8>)>,
+) {
+    let amqp_url = std::env::var(AMQP_URL).expect(format!("{} must be set", AMQP_URL).as_str());
+    let mut channel = init_channel(&amqp_url);
 
     //queue: &str, passive: bool, durable: bool, exclusive: bool, auto_delete: bool, nowait: bool, arguments: Table
     channel
@@ -109,24 +114,7 @@ pub fn start_rabbitmq(
             process::exit(0);
         });
 
-    let mut session = match Session::open_url(&amqp_url) {
-        Ok(session) => session,
-        Err(error) => panic!("failed to open url {} : {:?}", amqp_url, error),
-    };
-    let mut channel = session.open_channel(1).ok().expect("Can't open channel");
-    let _ = channel.basic_prefetch(10);
-    channel
-        .exchange_declare(
-            "cita",
-            "topic",
-            false,
-            true,
-            false,
-            false,
-            false,
-            Table::new(),
-        )
-        .unwrap();
+    let mut channel = init_channel(&amqp_url);
 
     // thread send msg to mq
     let _ = thread::Builder::new()
