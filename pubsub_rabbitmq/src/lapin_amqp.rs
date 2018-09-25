@@ -249,13 +249,11 @@ pub fn start_rabbitmq(
         let name = name.to_owned();
         let conn_opts = conn_opts.clone();
         thread::spawn(move || {
-            if let Err(err) = Runtime::new().unwrap().block_on_all(connect_publisher(
-                addr,
-                conn_opts,
-                name,
-                publisher_rx,
-            )) {
-                error!("Failed when publisher handle message: {}", err);
+            if let Err(err) = Runtime::new()
+                .unwrap()
+                .block_on_all(connect_consumer(addr, conn_opts, name, keys, tx))
+            {
+                error!("Failed when consumer handle message: {}", err);
                 ::std::process::exit(0);
             }
         });
@@ -265,11 +263,13 @@ pub fn start_rabbitmq(
         let name = name.to_owned();
         let conn_opts = conn_opts.clone();
         thread::spawn(move || {
-            if let Err(err) = Runtime::new()
-                .unwrap()
-                .block_on_all(connect_consumer(addr, conn_opts, name, keys, tx))
-            {
-                error!("Failed when consumer handle message: {}", err);
+            if let Err(err) = Runtime::new().unwrap().block_on_all(connect_publisher(
+                addr,
+                conn_opts,
+                name,
+                publisher_rx,
+            )) {
+                error!("Failed when publisher handle message: {}", err);
                 ::std::process::exit(0);
             }
         });
