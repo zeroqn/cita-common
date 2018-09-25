@@ -6,6 +6,7 @@ authors = ["Cryptape Technologies <contact@cryptape.com>"]
 [dependencies]
 amqp = { version = "0.1", default-features = false }
 lapin-futures = "0.13"
+amq-protocol = "0.21"
 tokio = "=0.1.8"
 futures = "0.1.24"
 logger = { path = "../logger" }
