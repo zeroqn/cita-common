@@ -237,7 +237,7 @@ pub fn start_rabbitmq(
                     Ok(data) => {
                         let mut errcnt = 0u64;
                         loop {
-                            if let Err(err) = publisher_tx.clone().try_send(data.clone()) {
+                            if let Err(err) = publisher_tx.try_send(data.clone()) {
                                 errcnt += 1;
                                 if errcnt > max_errcnt {
                                     error!("Failed to send transfer message: {}", err);
