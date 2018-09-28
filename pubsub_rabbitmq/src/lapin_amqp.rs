@@ -82,13 +82,14 @@ where
         channel
             .queue_declare(&name, QueueDeclareOptions::default(), FieldTable::new())
             .and_then(move |_| {
-                debug!("publisher queue declared");
+                trace!("publisher queue declared");
                 channel
                     .queue_purge(&name, QueuePurgeOptions::default())
                     .and_then(move |_| {
-                        debug!("publisher queue purged");
+                        trace!("publisher queue purged");
                         publisher_rx
                             .for_each(move |(routing_key, msg): Payload| {
+                                trace!("publisher publish to {}: {:?}", routing_key, msg);
                                 tokio::spawn(
                                     channel
                                         .basic_publish(
@@ -122,7 +123,7 @@ where
     let keys = stream::iter_ok::<_, ()>(keys);
     client.create_channel().and_then(move |channel| {
         let id = channel.id;
-        debug!("created channel with id: {}", id);
+        trace!("consumer created channel with id: {}", id);
 
         let ch1 = channel.clone();
         let ch2 = channel.clone();
@@ -139,9 +140,9 @@ where
                 channel
                     .queue_declare(&name, opts, FieldTable::new())
                     .and_then(move |queue| {
-                        debug!("channel {} declared queue {}", id, name_clone);
-
+                        trace!("consumer channel {} declared queue {}", id, name_clone);
                         keys.for_each(move |key| {
+                            trace!("consumer bind queue {}", key);
                             channel
                                 .queue_bind(
                                     &name_clone,
@@ -156,6 +157,7 @@ where
                             .map(|_| queue)
                     })
                     .and_then(move |queue| {
+                        trace!("consumer consume queue {}", name);
                         ch1.basic_consume(
                             &queue,
                             &name,
@@ -172,7 +174,7 @@ where
                         data,
                         ..
                     } = message;
-                    trace!("Receive msg {:?} from {}", data, routing_key);
+                    trace!("Receive msg from {}: {:?}", routing_key, data);
                     let ret = consumer_tx.send((routing_key, data));
                     if ret.is_err() {
                         error!("amqp message send error {:?}", ret);
