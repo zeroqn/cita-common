@@ -262,7 +262,7 @@ pub fn start_rabbitmq(
                             if let Err(err) = publisher_tx.clone().try_send(data.clone()) {
                                 errcnt += 1;
                                 if errcnt > max_errcnt {
-                                    error!("Failed to send transfer message: {}", err);
+                                    warn!("Failed to send transfer message: {}", err);
                                     break;
                                 }
                                 let millis = ::std::time::Duration::from_millis(errcnt * 100);
@@ -272,11 +272,12 @@ pub fn start_rabbitmq(
                             }
                         }
                         if errcnt > max_errcnt {
+                            warn!("Failed to send transfer message: retry too many times");
                             break;
                         }
                     }
                     Err(err) => {
-                        error!("Failed to recv transfer message: {}", err);
+                        warn!("Failed to recv transfer message: {}", err);
                         break;
                     }
                 }
