@@ -85,8 +85,10 @@ where
     T: 'static,
 {
     client.create_channel().and_then(move |channel| {
+        let mut opts = QueueDeclareOptions::default();
+        opts.durable = true;
         channel
-            .queue_declare(&name, QueueDeclareOptions::default(), FieldTable::new())
+            .queue_declare(&name, opts, FieldTable::new())
             .map_err(|err| {
                 error!("publisher queue declare failed: {}", err);
                 err
@@ -154,7 +156,8 @@ where
             })
             .and_then(move |_| {
                 trace!("consumer exchange declare");
-                let opts = QueueDeclareOptions::default();
+                let mut opts = QueueDeclareOptions::default();
+                opts.durable = true;
                 channel
                     .queue_declare(&name, opts, FieldTable::new())
                     .map_err(|err| {
