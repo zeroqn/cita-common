@@ -41,6 +41,7 @@ impl Consumer for Handler {
         _: protocol::basic::BasicProperties,
         body: Vec<u8>,
     ) {
+        trace!("consumer from {}: {:?}", deliver.routing_key, body);
         let _ = self.tx.send((deliver.routing_key, body));
         let _ = channel.basic_ack(deliver.delivery_tag, false);
     }
@@ -122,6 +123,7 @@ pub fn start_rabbitmq(name: &str, keys: Vec<String>, tx: Sender<Payload>, rx: Re
                     break;
                 }
                 let (routing_key, msg) = ret.unwrap();
+                trace!("publisher publish to {}: {:?}", deliver.routing_key, body);
                 let ret = channel.basic_publish(
                     EXCHANGE,
                     &routing_key,
