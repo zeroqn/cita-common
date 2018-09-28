@@ -50,8 +50,10 @@ fn connect_consumer(
         .and_then(|stream| Client::connect(stream, conn_opts))
         .and_then(move |(client, heartbeat)| {
             tokio::spawn(heartbeat.map_err(|_| ()));
-            consumer(&client, name, keys, consumer_tx)
-                .map_err(|err| error!("fuck-4 consumer failed: {}", err))
+            consumer(&client, name, keys, consumer_tx).map_err(|err| {
+                error!("fuck-4 consumer failed: {}", err);
+                err
+            })
         })
 }
 
@@ -141,7 +143,10 @@ where
                 opts.durable = true;
                 channel
                     .queue_declare(&name, opts, FieldTable::new())
-                    .map_err(|err| error!("fuck-1 consumer failed: {}", err))
+                    .map_err(|err| {
+                        error!("fuck-1 consumer failed: {}", err);
+                        err
+                    })
                     .and_then(move |queue| {
                         trace!("consumer channel {} declared queue {}", id, name_clone);
                         keys.for_each(move |key| {
@@ -168,7 +173,10 @@ where
                             FieldTable::new(),
                         )
                     })
-                    .map_err(|err| error!("fuck-2 consumer failed: {}", err))
+                    .map_err(|err| {
+                        error!("fuck-2 consumer failed: {}", err);
+                        err
+                    })
             })
             .and_then(|stream| {
                 stream.for_each(move |message| {
@@ -186,7 +194,10 @@ where
                     ch2.basic_ack(delivery_tag, false)
                 })
             })
-            .map_err(|err| error!("fuck-3 consumer failed: {}", err))
+            .map_err(|err| {
+                error!("fuck-3 consumer failed: {}", err);
+                err
+            })
     })
 }
 
