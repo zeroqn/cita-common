@@ -123,7 +123,7 @@ pub fn start_rabbitmq(name: &str, keys: Vec<String>, tx: Sender<Payload>, rx: Re
                     break;
                 }
                 let (routing_key, msg) = ret.unwrap();
-                trace!("publisher publish to {}: {:?}", deliver.routing_key, body);
+                trace!("publisher publish to {}: {:?}", routing_key, msg);
                 let ret = channel.basic_publish(
                     EXCHANGE,
                     &routing_key,
