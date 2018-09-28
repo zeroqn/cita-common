@@ -154,8 +154,7 @@ where
             })
             .and_then(move |_| {
                 trace!("consumer exchange declare");
-                let mut opts = QueueDeclareOptions::default();
-                opts.durable = true;
+                let opts = QueueDeclareOptions::default();
                 channel
                     .queue_declare(&name, opts, FieldTable::new())
                     .map_err(|err| {
