@@ -51,7 +51,7 @@ fn connect_consumer(
         .and_then(move |(client, heartbeat)| {
             tokio::spawn(heartbeat.map_err(|_| ()));
             consumer(&client, name, keys, consumer_tx).map_err(|err| {
-                error!("fuck-4 consumer failed: {}", err);
+                error!("consumer failed: {}", err);
                 err
             })
         })
@@ -67,7 +67,10 @@ fn connect_publisher(
         .and_then(|stream| Client::connect(stream, conn_opts))
         .and_then(move |(client, heartbeat)| {
             tokio::spawn(heartbeat.map_err(|_| ()));
-            publisher(&client, name, publisher_rx)
+            publisher(&client, name, publisher_rx).map_err(|err| {
+                error!("publisher failed: {}", err);
+                err
+            })
         })
 }
 
@@ -84,10 +87,18 @@ where
     client.create_channel().and_then(move |channel| {
         channel
             .queue_declare(&name, QueueDeclareOptions::default(), FieldTable::new())
+            .map_err(|err| {
+                error!("publisher queue declare failed: {}", err);
+                err
+            })
             .and_then(move |_| {
                 trace!("publisher queue declared");
                 channel
                     .queue_purge(&name, QueuePurgeOptions::default())
+                    .map_err(|err| {
+                        error!("publisher queue purge failed: {}", err);
+                        err
+                    })
                     .and_then(move |_| {
                         trace!("publisher queue purged");
                         publisher_rx
@@ -137,6 +148,10 @@ where
 
         channel
             .exchange_declare(EXCHANGE, EXCHANGE_TYPE, opts, FieldTable::new())
+            .map_err(|err| {
+                error!("consumer exchange declare failed: {}", err);
+                err
+            })
             .and_then(move |_| {
                 trace!("consumer exchange declare");
                 let mut opts = QueueDeclareOptions::default();
@@ -144,7 +159,7 @@ where
                 channel
                     .queue_declare(&name, opts, FieldTable::new())
                     .map_err(|err| {
-                        error!("fuck-1 consumer failed: {}", err);
+                        error!("consumer queue declare failed: {}", err);
                         err
                     })
                     .and_then(move |queue| {
@@ -159,9 +174,15 @@ where
                                     QueueBindOptions::default(),
                                     FieldTable::new(),
                                 )
+                                .map_err(|err| {
+                                    error!("consumer queue bind {} failed: {}", key, err);
+                                    err
+                                })
                                 .map(|_| ())
-                                .map_err(|_| ())
-                        }).map_err(|_| Error::new(ErrorKind::Other, "queue_bind error!"))
+                        }).map_err(|err| {
+                                error!("consumer queues bind failed: {}", err);
+                                Error::new(ErrorKind::Other, "queue_bind error!")
+                            })
                             .map(|_| queue)
                     })
                     .and_then(move |queue| {
@@ -171,11 +192,10 @@ where
                             &name,
                             BasicConsumeOptions::default(),
                             FieldTable::new(),
-                        )
-                    })
-                    .map_err(|err| {
-                        error!("fuck-2 consumer failed: {}", err);
-                        err
+                        ).map_err(|err| {
+                            error!("consumer consume failed: {}", err);
+                            err
+                        })
                     })
             })
             .and_then(|stream| {
@@ -195,7 +215,7 @@ where
                 })
             })
             .map_err(|err| {
-                error!("fuck-3 consumer failed: {}", err);
+                error!("consumer last failed: {}", err);
                 err
             })
     })
