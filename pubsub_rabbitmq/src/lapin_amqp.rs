@@ -135,6 +135,7 @@ where
         channel
             .exchange_declare(EXCHANGE, EXCHANGE_TYPE, opts, FieldTable::new())
             .and_then(move |_| {
+                trace!("consumer exchange declare");
                 let mut opts = QueueDeclareOptions::default();
                 opts.durable = true;
                 channel
