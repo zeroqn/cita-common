@@ -175,12 +175,12 @@ where
                                     FieldTable::new(),
                                 )
                                 .map_err(|err| {
-                                    error!("consumer queue bind {} failed: {}", key, err);
+                                    error!("consumer queue bind failed: {}", err);
                                     ()
                                 })
                                 .map(|_| ())
                         }).map_err(|err| {
-                                error!("consumer queues bind failed: {}", err);
+                                error!("consumer queues bind failed: {:?}", err);
                                 Error::new(ErrorKind::Other, "queue_bind error!")
                             })
                             .map(|_| queue)
@@ -257,7 +257,7 @@ pub fn start_rabbitmq(
                     Ok(data) => {
                         let mut errcnt = 0u64;
                         loop {
-                            if let Err(err) = publisher_tx.try_send(data.clone()) {
+                            if let Err(err) = publisher_tx.clone().try_send(data.clone()) {
                                 errcnt += 1;
                                 if errcnt > max_errcnt {
                                     error!("Failed to send transfer message: {}", err);
