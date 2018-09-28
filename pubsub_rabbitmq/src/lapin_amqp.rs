@@ -176,7 +176,7 @@ where
                                 )
                                 .map_err(|err| {
                                     error!("consumer queue bind {} failed: {}", key, err);
-                                    err
+                                    ()
                                 })
                                 .map(|_| ())
                         }).map_err(|err| {
