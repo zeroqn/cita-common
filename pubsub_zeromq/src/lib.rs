@@ -36,6 +36,8 @@ pub fn start_zeromq(
         "chain" => assert!(publisher.bind("tcp://*:5564").is_ok()),
         "jsonrpc" => assert!(publisher.bind("tcp://*:5565").is_ok()),
         "consensus" => assert!(publisher.bind("tcp://*:5566").is_ok()),
+        "executor" => assert!(publisher.bind("tcp://*:5567").is_ok()),
+        "auth" => assert!(publisher.bind("tcp://*:5568").is_ok()),
         _ => error!("not hava {} module !", name),
     }
 
@@ -68,6 +70,12 @@ pub fn start_zeromq(
     let consensus_subscriber = context.socket(zmq::SUB).unwrap();
     assert!(network_subscriber.connect("tcp://localhost:5566").is_ok());
 
+    let executor_subscriber = context.socket(zmq::SUB).unwrap();
+    assert!(executor_subscriber.connect("tcp://localhost:5567").is_ok());
+
+    let auth_subscriber = context.socket(zmq::SUB).unwrap();
+    assert!(auth_subscriber.connect("tcp://localhost:5568").is_ok());
+
     let mut flag = 400;
     for topic in keys {
         flag = match name {
@@ -94,6 +102,18 @@ pub fn start_zeromq(
                     .set_subscribe(&topic.to_string().into_bytes())
                     .unwrap();
                 3
+            }
+            "executor" => {
+                executor_subscriber
+                    .set_subscribe(&topic.to_string().into_bytes())
+                    .unwrap();
+                4
+            }
+            "auth" => {
+                auth_subscriber
+                    .set_subscribe(&topic.to_string().into_bytes())
+                    .unwrap();
+                5
             }
             _ => {
                 error!("invalid  flag!");
@@ -127,6 +147,18 @@ pub fn start_zeromq(
                 3 => {
                     let topic = consensus_subscriber.recv_string(0).unwrap().unwrap();
                     let msg = consensus_subscriber.recv_bytes(0).unwrap();
+                    let _ = tx.send((topic, msg));
+                }
+
+                4 => {
+                    let topic = executor_subscriber.recv_string(0).unwrap().unwrap();
+                    let msg = executor_subscriber.recv_bytes(0).unwrap();
+                    let _ = tx.send((topic, msg));
+                }
+
+                5 => {
+                    let topic = auth_subscriber.recv_string(0).unwrap().unwrap();
+                    let msg = auth_subscriber.recv_bytes(0).unwrap();
                     let _ = tx.send((topic, msg));
                 }
 
