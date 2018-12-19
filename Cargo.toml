@@ -40,6 +40,7 @@ members = [
     "jsonrpc-types",
     "cita-web3",
     "db",
+    "jsonrpc-proto",
 
     "engine",
 ]
